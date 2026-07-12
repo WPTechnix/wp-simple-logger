@@ -1,0 +1,72 @@
+{
+    "name": "wptechnix/wp-simple-logger",
+    "description": "A flexible, performant PSR-3 compliant logging library for WordPress. Features handlers for files, database (with admin UI), email, and is highly extensible.",
+    "type": "library",
+    "license": "MIT",
+    "keywords": [
+        "logging",
+        "logs",
+        "psr-3",
+        "logger",
+        "wordpress",
+        "wordpress-logs",
+        "wordpress-logger",
+        "debug",
+        "debugging",
+        "error-logging",
+        "wp-debug"
+    ],
+    "authors": [
+      {
+        "name": "WPTechnix",
+        "homepage": "https://github.com/wptechnix"
+      }
+    ],
+    "support": {
+      "issues": "https://github.com/wptechnix/wp-simple-logger/issues",
+      "source": "https://github.com/wptechnix/wp-simple-logger"
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "require": {
+        "php": "^8.0",
+        "psr/log": "^3.0"
+    },
+    "require-dev": {
+        "brain/monkey": "^2.7",
+        "phpstan/phpstan": "^2.2",
+        "phpstan/phpstan-strict-rules": "^2.0",
+        "phpunit/phpunit": "^9.6",
+        "szepeviktor/phpstan-wordpress": "^2.0",
+        "wptechnix/wp-coding-standards": "^1.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "WPTechnix\\WP_Simple_Logger\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "WPTechnix\\WP_Simple_Logger\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "phpcbf": "vendor/bin/phpcbf --standard=phpcs.xml.dist || true",
+        "phpcs": "vendor/bin/phpcs -s --report=full --standard=phpcs.xml.dist",
+        "phpstan": "vendor/bin/phpstan analyse --memory-limit=2G --error-format=table --configuration=phpstan.neon.dist",
+        "test": "phpunit --colors=always",
+        "lint": [
+            "@phpcs",
+            "@phpstan"
+        ]
+    },
+    "config": {
+        "platform": {
+            "php": "8.0"
+        },
+        "sort-packages": true,
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    }
+}

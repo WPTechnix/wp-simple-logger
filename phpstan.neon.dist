@@ -1,0 +1,15 @@
+parameters:
+    phpVersion: 80000
+    level: 8
+    tmpDir: .phpstan.cache
+    paths:
+        - src/
+
+    strictRules:
+        noVariableVariables: false
+
+    treatPhpDocTypesAsCertain: false
+
+includes:
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+    - vendor/szepeviktor/phpstan-wordpress/extension.neon

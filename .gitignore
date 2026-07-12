@@ -1,0 +1,33 @@
+# Composer dependencies
+vendor/
+composer.lock
+
+# NPM if exists ever.
+node_modules/
+package-lock.json
+
+# IDE
+.idea/
+.vscode/
+.zed/
+.claude/
+.cursor/
+.codex/
+.opencode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs & Reports
+*.log
+*.tmp
+tmp/
+reports/
+
+phpunit.xml
+.phpunit.cache/
+.phpunit.result.cache
+.phpstan.cache/
