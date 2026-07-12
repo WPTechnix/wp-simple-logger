@@ -47,31 +47,6 @@ Then, ensure you include Composer's autoloader in your plugin or theme:
 require_once __DIR__ . '/vendor/autoload.php';
 ```
 
-## Development
-
-The toolchain runs entirely in Docker, so no local PHP or Composer is required.
-
-### Using Docker Compose
-
-```bash
-# Open a shell in the PHP container
-docker compose run --rm php bash
-
-# Run tests inside the container
-docker compose run --rm php composer test
-
-# Run linters
-docker compose run --rm php composer lint
-```
-
-### Running Tests
-
-```bash
-composer test             # Run PHPUnit tests
-composer lint             # Run all linters (PHPCS, PHPStan)
-composer phpcbf           # Auto-fix coding standards
-```
-
 ## Quick Start
 
 The easiest way to get started is to log messages to a file. Place this code in your main plugin file or your theme's `functions.php`.
@@ -181,6 +156,31 @@ $slack_handler->set_channels(['payments']);
 $manager->add_handler($slack_handler);
 ```
 
+
+## Development
+
+The toolchain runs entirely in Docker, so no local PHP or Composer is required.
+
+### Using Docker Compose
+
+```bash
+# Open a shell in the PHP container
+docker compose run --rm php bash
+
+# Run tests inside the container
+docker compose run --rm php composer test
+
+# Run linters
+docker compose run --rm php composer lint
+```
+
+### Running Tests
+
+```bash
+composer test             # Run PHPUnit tests
+composer lint             # Run all linters (PHPCS, PHPStan)
+composer phpcbf           # Auto-fix coding standards
+```
 
 ## License
 
