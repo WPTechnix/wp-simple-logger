@@ -1,8 +1,7 @@
 # WP Simple Logger
 
 [![Latest Version](https://img.shields.io/packagist/v/wptechnix/wp-simple-logger.svg?style=for-the-badge)](https://packagist.org/packages/wptechnix/wp-simple-logger)
-[![Total Downloads](https://img.shields.io/packagist/dt/wptechnix/wp-simple-logger.svg?style=for-the-badge)](https://packagist.org/packages/wptechnix/wp-simple-logger)
-[![License](https://img.shields.io/packagist/l/wptechnix/wp-simple-logger.svg?style=for-the-badge)](https://packagist.org/packages/wptechnix/wp-simple-logger)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)](./LICENSE)
 [![PHP Version Require](https://img.shields.io/packagist/dependency-v/wptechnix/wp-simple-logger/php.svg?style=for-the-badge)](https://packagist.org/packages/wptechnix/wp-simple-logger)
 
 A powerful, flexible, and developer-friendly PSR-3 compliant logging library for WordPress. It provides a robust framework for capturing, managing, and storing application events, errors, and debugging information in a structured and efficient way.
