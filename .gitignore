@@ -35,3 +35,4 @@ phpstan.neon
 .phpunit.result.cache
 .phpstan.cache/
 .phpcs.cache
+.opencode

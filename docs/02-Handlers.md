@@ -38,7 +38,7 @@ use Psr\Log\LogLevel;
 // Create a handler that only logs WARNING level and above to a specific file.
 $file_handler = new File_Handler(
     path: WP_CONTENT_DIR . '/logs/warnings.log',
-    min_level: LogLevel::WARNING // Prefer constants over strings like 'warning'
+    min_level: LogLevel::WARNING
 );
 
 // Add it to the manager
@@ -53,12 +53,14 @@ Stores log records in a dedicated, optimized custom table in the WordPress datab
 
 ### Constructor
 
-`new Database_Handler(string $table_name, string $min_level = 'debug', int $buffer_limit = 20, int $expiry_seconds = 0)`
+`new Database_Handler(string $table_name, string $min_level = 'debug', int $buffer_limit = 20, int $expiry_seconds = 0, ?Log_Repository $repository = null, ?Database_Installer $installer = null)`
 
 -   **`$table_name`** (`string`, required): The **full, unique name** for the log table (e.g., `{$wpdb->prefix}my_plugin_logs`). The handler automatically creates and maintains this table.
 -   **`$min_level`** (`string`): The minimum log level to store. Defaults to `'debug'`.
 -   **`$buffer_limit`** (`int`): Defaults to `20`. A higher buffer limit can improve performance for high-volume logging.
 -   **`$expiry_seconds`** (`int`): The number of seconds to keep logs before they are automatically deleted. `0` means logs are kept forever. Cleanup runs hourly via a transient lock. Defaults to `0`.
+-   **`$repository`** (`?Log_Repository`): An optional repository instance for dependency injection. Defaults to creating a new `Log_Repository` for `$table_name`.
+-   **`$installer`** (`?Database_Installer`): An optional installer instance for dependency injection. Defaults to creating a new `Database_Installer` for `$table_name`.
 
 ### Configuration Methods
 
@@ -81,17 +83,14 @@ global $wpdb;
 use WPTechnix\WP_Simple_Logger\Handlers\Database_Handler;
 use Psr\Log\LogLevel;
 
-// One month in seconds (30 * 24 * 60 * 60)
 define( 'ONE_MONTH_IN_SECONDS', 2592000 );
 
-// Create a handler that stores logs in the DB for 30 days
 $db_handler = new Database_Handler(
     table_name: $wpdb->prefix . 'my_app_logs',
     min_level: LogLevel::INFO,
     expiry_seconds: ONE_MONTH_IN_SECONDS
 );
 
-// Enable and configure the admin UI under the "Tools" menu
 $db_handler->set_admin_viewer(
     parent_menu_slug: 'tools.php',
     page_slug: 'my-app-log-viewer',
@@ -102,6 +101,7 @@ $db_handler->set_admin_viewer(
 
 $manager->add_handler($db_handler);
 ```
+
 For more details on the UI, see the **[Log Viewer Guide](04-Log-Viewer.md)**.
 
 ---
@@ -140,19 +140,16 @@ These methods allow you to customize the content of the email.
 use WPTechnix\WP_Simple_Logger\Handlers\Email_Handler;
 use Psr\Log\LogLevel;
 
-// Send an email for any CRITICAL errors.
 $email_handler = new Email_Handler(
     to_recipients: 'dev-alerts@example.com',
     subject: 'Critical Error on Production Site',
     min_level: LogLevel::CRITICAL,
 );
 
-// Customize the email content
 $email_handler
     ->set_email_title('Critical Site Alert')
     ->set_headers(['From: WordPress <wordpress@example.com>']);
 
-// Add it to the manager
 $manager->add_handler($email_handler);
 ```
 
@@ -168,91 +165,4 @@ Posts log records to a [Slack Incoming Webhook](https://api.slack.com/messaging/
 
 -   **`$webhook_url`** (`string`, required): The Slack Incoming Webhook URL.
 -   **`$min_level`** (`string`): The minimum log level to post. Defaults to `'error'` to avoid noise.
--   **`$buffer_limit`** (`int`): The number of records to batch into a single message. Defaults to `10`.
-
-### Configuration Methods
-
-| Method | Description |
-| ------ | ----------- |
-| `set_username(string $username)` | The bot name shown in Slack. Defaults to `WP Simple Logger`. |
-| `set_icon_emoji(string $emoji)` | An emoji shortcode used as the message icon, e.g. `:rotating_light:`. |
-| `set_channel(string $channel)` | Override the destination channel, e.g. `#alerts`. |
-| `set_timeout(int $seconds)` | HTTP request timeout in seconds. Defaults to `5`. |
-| `set_blocking(bool $blocking)` | Whether to wait for the HTTP response. Defaults to `false` (fire and forget). |
-
-### Usage Example
-
-```php
-use WPTechnix\WP_Simple_Logger\Handlers\Slack_Handler;
-use Psr\Log\LogLevel;
-
-$slack_handler = new Slack_Handler(
-    webhook_url: 'https://hooks.slack.com/services/XXX/YYY/ZZZ',
-    min_level: LogLevel::ERROR
-);
-
-$slack_handler
-    ->set_channel('#alerts')
-    ->set_icon_emoji(':rotating_light:');
-
-$manager->add_handler($slack_handler);
-```
-
----
-
-## Webhook Handler
-
-Posts buffered log records to any HTTP endpoint as a single JSON document shaped as `{ "logs": [ ... ] }`. This is a convenient building block for shipping logs to custom ingestion services or third-party platforms.
-
-### Constructor
-
-`new Webhook_Handler(string $webhook_url, string $min_level = 'debug', int $buffer_limit = 10)`
-
--   **`$webhook_url`** (`string`, required): The endpoint that receives the request.
--   **`$min_level`** (`string`): The minimum log level to send. Defaults to `'debug'`.
--   **`$buffer_limit`** (`int`): The number of records per request. Defaults to `10`.
-
-### Configuration Methods
-
-These methods are shared by all webhook-based handlers (`Webhook_Handler`, `Slack_Handler`, and any handler extending `Abstract_Webhook_Handler`).
-
-| Method | Description |
-| ------ | ----------- |
-| `set_method(string $method)` | The HTTP method. Defaults to `POST`. |
-| `set_headers(array $headers)` | Replace all request headers (keyed by name). |
-| `add_header(string $name, string $value)` | Add or override a single header, keeping the default `Content-Type: application/json`. |
-| `set_timeout(int $seconds)` | HTTP request timeout in seconds. Defaults to `5`. |
-| `set_blocking(bool $blocking)` | Whether to wait for the HTTP response. Defaults to `false`. |
-| `set_request_args(array $args)` | Extra `wp_remote_request()` arguments for settings not covered above, e.g. `sslverify`. Managed keys (method, headers, body, timeout, blocking) always take precedence. |
-
-Each log record is serialized with the fields `channel`, `level`, `level_name`, `message`, `context`, `datetime`, and `timestamp`.
-
-### Usage Example
-
-```php
-use WPTechnix\WP_Simple_Logger\Handlers\Webhook_Handler;
-
-$webhook_handler = new Webhook_Handler('https://logs.example.com/ingest');
-$webhook_handler
-    ->set_method('POST')
-    ->add_header('Authorization', 'Bearer YOUR_TOKEN');
-
-$manager->add_handler($webhook_handler);
-```
-
-To customize the payload shape (for example, to target Discord or Microsoft Teams), extend `Abstract_Webhook_Handler` and implement `build_payload()`. See the **[Advanced Topics](05-Advanced-Topics.md)** guide.
-
----
-
-## Null Handler
-
-Accepts and silently discards every log record. This is useful for disabling logging in a specific environment without changing your wiring, and as a stand-in during tests.
-
-### Usage Example
-
-```php
-use WPTechnix\WP_Simple_Logger\Handlers\Null_Handler;
-
-// Discards everything; add real handlers only where you want output.
-$manager->add_handler(new Null_Handler());
-```
+-   **`$buffer_limit`** (`int`): The number of records to batch into a single message. Default

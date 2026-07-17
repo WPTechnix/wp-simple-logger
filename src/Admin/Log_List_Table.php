@@ -1,18 +1,17 @@
 <?php
 /**
  * Renders the WP_List_Table for displaying logs.
- *
- * @package WPTechnix\WP_Simple_Logger\Admin
  */
 
 declare(strict_types=1);
 
 namespace WPTechnix\WP_Simple_Logger\Admin;
 
-use WPTechnix\WP_Simple_Logger\Handlers\Database\Log_Repository;
+use WPTechnix\WP_Simple_Logger\Database\Log_Repository;
 use WPTechnix\WP_Simple_Logger\Log_Entry;
 use WPTechnix\WP_Simple_Logger\Log_Level;
 use WPTechnix\WP_Simple_Logger\Utils\Color;
+use WPTechnix\WP_Simple_Logger\Utils\Json_Encoder;
 use WP_List_Table;
 use Override;
 
@@ -28,9 +27,32 @@ if ( ! class_exists( '\WP_List_Table' ) && file_exists( ABSPATH . 'wp-admin/incl
 final class Log_List_Table extends WP_List_Table {
 
 	/**
+	 * The nonce action name used for the "Clear Logs" button, shared with Log_Viewer.
+	 */
+	public const NONCE_CLEAR_LOGS = 'wpsl_clear_logs_nonce';
+
+	/**
+	 * The nonce action name WordPress generates for this table's bulk actions, shared with Log_Viewer.
+	 */
+	public const NONCE_BULK_ACTION = 'bulk-logs';
+
+	/**
+	 * The allowed values for the `level_compare` request filter.
+	 */
+	private const LEVEL_COMPARE_OPTIONS = [ 'eq', 'min', 'max' ];
+
+	/**
+	 * The allowed values for the `orderby` request filter.
+	 */
+	private const ORDERBY_OPTIONS = [ 'id', 'timestamp', 'channel', 'level' ];
+
+	/**
+	 * The allowed values for the `order` request filter.
+	 */
+	private const ORDER_OPTIONS = [ 'asc', 'ASC', 'desc', 'DESC' ];
+
+	/**
 	 * The repository for database operations.
-	 *
-	 * @var Log_Repository
 	 */
 	private Log_Repository $repository;
 
@@ -129,7 +151,6 @@ final class Log_List_Table extends WP_List_Table {
 	 * @param object $item The log item.
 	 */
 	public function column_channel( object $item ): string {
-		// phpcs:ignore Generic.Commenting.DocComment.MissingShort
 		/** @var Log_Entry $entry */
 		$entry = $item;
 		// The `row_actions` call is a WP_List_Table convention for the primary column.
@@ -146,7 +167,6 @@ final class Log_List_Table extends WP_List_Table {
 	 */
 	#[Override]
 	public function column_default( $item, $column_name ): string {
-		// phpcs:ignore Generic.Commenting.DocComment.MissingShort
 		/** @var Log_Entry $entry */
 		$entry       = $item;
 		$level_color = Log_Level::get_level_color( $entry->get_level_priority() );
@@ -183,13 +203,13 @@ final class Log_List_Table extends WP_List_Table {
 		$context = $item->get_context();
 
 		if ( null !== $context ) {
-			$context_json = wp_json_encode( $context, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
+			$context_json = Json_Encoder::encode( $context, Json_Encoder::DEFAULT_FLAGS | JSON_PRETTY_PRINT );
 			$viewer_html  = '<div class="wpsl-context-viewer" style="display: none;">';
 			$viewer_html .= '<div class="wpsl-context-header">';
 			$viewer_html .= '<span>' . esc_html__( 'Context Data', 'wp-simple-logger' ) . '</span>';
 			$viewer_html .= '<button type="button" class="button-link wpsl-copy-context">' . esc_html__( 'Copy', 'wp-simple-logger' ) . '</button>';
 			$viewer_html .= '</div>';
-			$viewer_html .= '<pre class="wpsl-context-pre">' . esc_html( (string) $context_json ) . '</pre>';
+			$viewer_html .= '<pre class="wpsl-context-pre">' . esc_html( $context_json ?? '' ) . '</pre>';
 			$viewer_html .= '</div>';
 
 			$toggle_button = sprintf(
@@ -237,10 +257,10 @@ final class Log_List_Table extends WP_List_Table {
 		$this->filters = [
 			'channel'       => $this->get_request_text( 'channel' ),
 			'level'         => $this->get_request_text( 'level' ),
-			'level_compare' => isset( $_GET['level_compare'] ) && in_array( $_GET['level_compare'], [ 'eq', 'min', 'max' ], true ) ? $_GET['level_compare'] : 'eq',
+			'level_compare' => isset( $_GET['level_compare'] ) && in_array( $_GET['level_compare'], self::LEVEL_COMPARE_OPTIONS, true ) ? $_GET['level_compare'] : 'eq',
 			'search'        => $this->get_request_text( 's' ),
-			'orderby'       => isset( $_GET['orderby'] ) && in_array( $_GET['orderby'], [ 'id', 'timestamp', 'channel', 'level' ], true ) ? $_GET['orderby'] : 'id',
-			'order'         => isset( $_GET['order'] ) && in_array( $_GET['order'], [ 'asc', 'ASC', 'desc', 'DESC' ], true ) ? strtoupper( $_GET['order'] ) : 'DESC',
+			'orderby'       => isset( $_GET['orderby'] ) && in_array( $_GET['orderby'], self::ORDERBY_OPTIONS, true ) ? $_GET['orderby'] : 'id',
+			'order'         => isset( $_GET['order'] ) && in_array( $_GET['order'], self::ORDER_OPTIONS, true ) ? strtoupper( $_GET['order'] ) : 'DESC',
 		];
 
 		return $this->filters;
@@ -283,7 +303,6 @@ final class Log_List_Table extends WP_List_Table {
 	 */
 	#[Override]
 	public function column_cb( $item ): string {
-		// phpcs:ignore Generic.Commenting.DocComment.MissingShort
 		/** @var Log_Entry $entry */
 		$entry = $item;
 		return sprintf( '<input type="checkbox" name="log_ids[]" value="%s" />', esc_attr( (string) $entry->get_id() ) );
@@ -367,7 +386,7 @@ final class Log_List_Table extends WP_List_Table {
 	 * Renders the 'Clear Logs' button with a data attribute for the JS confirmation.
 	 */
 	private function render_clear_logs_button(): void {
-        // phpcs:disable WordPress.Security.NonceVerification.Recommended
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$page    = isset( $_REQUEST['page'] ) && is_string( $_REQUEST['page'] ) ? sanitize_key( $_REQUEST['page'] ) : '';
 		$channel = $this->get_filters_from_request()['channel'];
 
@@ -386,13 +405,12 @@ final class Log_List_Table extends WP_List_Table {
 				],
 				admin_url( 'admin.php' )
 			),
-			'wpsl_clear_logs_nonce'
+			self::NONCE_CLEAR_LOGS
 		);
 		?>
 		<a href="<?php echo esc_url( $clear_url ); ?>" class="button button-danger wpsl-clear-logs-button" style="margin-left: 5px;" data-confirm-text="<?php echo esc_attr( $confirm_text ); ?>">
 			<?php echo esc_html( $button_text ); ?>
 		</a>
 		<?php
-        // phpcs:enable
 	}
 }

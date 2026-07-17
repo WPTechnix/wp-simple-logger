@@ -1,8 +1,6 @@
 <?php
 /**
  * A no-op log handler that discards every record.
- *
- * @package WPTechnix\WP_Simple_Logger\Handlers
  */
 
 declare(strict_types=1);
@@ -10,6 +8,7 @@ declare(strict_types=1);
 namespace WPTechnix\WP_Simple_Logger\Handlers;
 
 use WPTechnix\WP_Simple_Logger\Log_Entry;
+use Override;
 
 /**
  * Class Null_Handler.
@@ -26,6 +25,7 @@ final class Null_Handler extends Abstract_Handler {
 	 *
 	 * @return bool Always returns true.
 	 */
+	#[Override]
 	public function handle( Log_Entry $entry ): bool {
 		return true;
 	}
@@ -35,6 +35,7 @@ final class Null_Handler extends Abstract_Handler {
 	 *
 	 * @param array<int, Log_Entry> $entries The buffered log entries.
 	 */
+	#[Override]
 	protected function write( array $entries ): void {
 		// Intentionally a no-op: this handler discards every log record.
 	}

@@ -1,8 +1,6 @@
 <?php
 /**
  * Abstract base class for all log handlers.
- *
- * @package WPTechnix\WP_Simple_Logger\Handlers
  */
 
 declare(strict_types=1);
@@ -14,6 +12,7 @@ use WPTechnix\WP_Simple_Logger\Contracts\Formatter_Interface;
 use WPTechnix\WP_Simple_Logger\Contracts\Handler_Interface;
 use WPTechnix\WP_Simple_Logger\Log_Entry;
 use WPTechnix\WP_Simple_Logger\Log_Level as LogLevelUtil;
+use Override;
 
 /**
  * Class Abstract_Handler.
@@ -25,23 +24,17 @@ abstract class Abstract_Handler implements Handler_Interface {
 
 	/**
 	 * The minimum log level that this handler will process.
-	 *
-	 * @var string
 	 */
 	protected string $min_level;
 
 	/**
 	 * The maximum number of records to buffer before forcing a flush.
 	 * A value of 0 disables this feature.
-	 *
-	 * @var int
 	 */
 	protected int $buffer_limit;
 
 	/**
 	 * The formatter instance to convert log records to strings.
-	 *
-	 * @var Formatter_Interface|null
 	 */
 	protected ?Formatter_Interface $formatter;
 
@@ -49,7 +42,7 @@ abstract class Abstract_Handler implements Handler_Interface {
 	 * An array of specific channels this handler should process.
 	 * If empty, all channels are allowed.
 	 *
-	 * @var array<string>
+	 * @var list<string>
 	 */
 	protected array $allowed_channels = [];
 
@@ -80,12 +73,9 @@ abstract class Abstract_Handler implements Handler_Interface {
 	}
 
 	/**
-	 * Checks whether the given log entry should be handled based on level and channel.
-	 *
-	 * @param Log_Entry $entry The log entry to check.
-	 *
-	 * @return bool True if the handler should process the log.
+	 * @inheritDoc
 	 */
+	#[Override]
 	public function should_handle( Log_Entry $entry ): bool {
 		if ( ! $this->is_channel_allowed( $entry->get_channel() ) ) {
 			return false;
@@ -148,6 +138,7 @@ abstract class Abstract_Handler implements Handler_Interface {
 	 *
 	 * @return bool Always returns true.
 	 */
+	#[Override]
 	public function handle( Log_Entry $entry ): bool {
 		$this->buffer[] = $entry;
 
@@ -159,8 +150,9 @@ abstract class Abstract_Handler implements Handler_Interface {
 	}
 
 	/**
-	 * Flushes the buffer by writing the batch to the handler's destination.
+	 * @inheritDoc
 	 */
+	#[Override]
 	public function flush(): void {
 		if ( 0 === count( $this->buffer ) ) {
 			return;

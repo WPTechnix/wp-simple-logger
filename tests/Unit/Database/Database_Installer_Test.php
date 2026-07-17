@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace WPTechnix\WP_Simple_Logger\Tests\Unit;
+namespace WPTechnix\WP_Simple_Logger\Tests\Unit\Database;
 
 use Brain\Monkey\Functions;
 use InvalidArgumentException;
-use WPTechnix\WP_Simple_Logger\Handlers\Database\Database_Installer;
+use WPTechnix\WP_Simple_Logger\Database\Database_Installer;
 use WPTechnix\WP_Simple_Logger\Tests\TestCase;
 
 final class Database_Installer_Test extends TestCase
@@ -54,7 +54,7 @@ final class Database_Installer_Test extends TestCase
             define('ABSPATH', $abspath);
         }
 
-        $GLOBALS['wpdb'] = new class {
+        $GLOBALS['wpdb'] = new class extends \wpdb {
             public function get_charset_collate(): string
             {
                 return '';

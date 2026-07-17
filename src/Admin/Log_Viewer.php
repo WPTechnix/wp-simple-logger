@@ -1,15 +1,13 @@
 <?php
 /**
  * Registers and renders the admin log viewer page.
- *
- * @package WPTechnix\WP_Simple_Logger\Admin
  */
 
 declare(strict_types=1);
 
 namespace WPTechnix\WP_Simple_Logger\Admin;
 
-use WPTechnix\WP_Simple_Logger\Handlers\Database\Log_Repository;
+use WPTechnix\WP_Simple_Logger\Database\Log_Repository;
 use WP_Screen;
 
 /**
@@ -17,46 +15,57 @@ use WP_Screen;
  *
  * Handles the creation of the admin menu page, processing of actions,
  * and injection of necessary CSS/JS assets.
+ *
+ * @phpstan-type Log_Viewer_Config array{
+ *     parent_slug: string,
+ *     page_title: string,
+ *     menu_title: string,
+ *     capability: string,
+ *     page_slug: string
+ * }
  */
 final class Log_Viewer {
 
 	/**
+	 * The transient key prefix used for the one-shot admin notice shown after an action.
+	 */
+	private const ADMIN_NOTICE_TRANSIENT_PREFIX = 'wpsl_admin_notice_';
+
+	/**
 	 * Configuration for the admin page.
 	 *
-	 * @var array<string, mixed>
+	 * @phpstan-var Log_Viewer_Config
 	 */
 	private array $config;
 
 	/**
 	 * The repository for database operations.
-	 *
-	 * @var Log_Repository
 	 */
 	private Log_Repository $repository;
 
 	/**
 	 * The list table instance.
-	 *
-	 * @var Log_List_Table
 	 */
-	private Log_List_Table $list_table;
+	private ?Log_List_Table $list_table;
 
 	/**
 	 * The screen ID for the log viewer page.
-	 *
-	 * @var string
 	 */
 	private string $screen_id = '';
 
 	/**
 	 * Log_Viewer constructor.
 	 *
-	 * @param array<string, mixed> $config     Configuration for the admin page.
-	 * @param Log_Repository       $repository The repository for database access.
+	 * @param array               $config     Configuration for the admin page.
+	 * @param Log_Repository      $repository The repository for database access.
+	 * @param Log_List_Table|null $list_table The list table to use. Defaults to a new instance for $repository.
+	 *
+	 * @phpstan-param Log_Viewer_Config $config
 	 */
-	public function __construct( array $config, Log_Repository $repository ) {
+	public function __construct( array $config, Log_Repository $repository, ?Log_List_Table $list_table = null ) {
 		$this->config     = $config;
 		$this->repository = $repository;
+		$this->list_table = $list_table;
 	}
 
 	/**
@@ -84,7 +93,7 @@ final class Log_Viewer {
 			return;
 		}
 
-		$transient_key = 'wpsl_admin_notice_' . get_current_user_id();
+		$transient_key = self::ADMIN_NOTICE_TRANSIENT_PREFIX . get_current_user_id();
 		$notice_html   = get_transient( $transient_key );
 
 		if ( false === $notice_html || ! is_string( $notice_html ) ) {
@@ -102,11 +111,11 @@ final class Log_Viewer {
 	 */
 	public function add_admin_menu_page(): void {
 		$hook = add_submenu_page(
-			(string) $this->config['parent_slug'],
-			(string) $this->config['page_title'],
-			(string) $this->config['menu_title'],
-			(string) $this->config['capability'],
-			(string) $this->config['page_slug'],
+			$this->config['parent_slug'],
+			$this->config['page_title'],
+			$this->config['menu_title'],
+			$this->config['capability'],
+			$this->config['page_slug'],
 			[ $this, 'render_page' ]
 		);
 
@@ -232,7 +241,7 @@ final class Log_Viewer {
 		?>
 		<div class="wrap wpsl-wrap">
 			<h1 class="wp-heading-inline">
-				<?php echo esc_html( (string) $this->config['page_title'] ); ?>
+				<?php echo esc_html( $this->config['page_title'] ); ?>
 			</h1>
 			<hr class="wp-header-end">
 			<form method="get">
@@ -304,11 +313,11 @@ final class Log_Viewer {
 	private function handle_clear_logs_action(): void {
 		$nonce = isset( $_REQUEST['_wpnonce'] ) && is_string( $_REQUEST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['_wpnonce'] ) ) : '';
 
-		if ( false === wp_verify_nonce( $nonce, 'wpsl_clear_logs_nonce' ) ) {
+		if ( false === wp_verify_nonce( $nonce, Log_List_Table::NONCE_CLEAR_LOGS ) ) {
 			return;
 		}
 
-		if ( false === current_user_can( (string) $this->config['capability'] ) ) {
+		if ( false === current_user_can( $this->config['capability'] ) ) {
 			wp_die( esc_html__( 'You do not have permission to clear logs.', 'wp-simple-logger' ) );
 		}
 
@@ -324,11 +333,11 @@ final class Log_Viewer {
 	private function handle_bulk_delete_action(): void {
 		$nonce = isset( $_REQUEST['_wpnonce'] ) && is_string( $_REQUEST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['_wpnonce'] ) ) : '';
 
-		if ( false === wp_verify_nonce( $nonce, 'bulk-logs' ) ) {
+		if ( false === wp_verify_nonce( $nonce, Log_List_Table::NONCE_BULK_ACTION ) ) {
 			return;
 		}
 
-		if ( false === current_user_can( (string) $this->config['capability'] ) ) {
+		if ( false === current_user_can( $this->config['capability'] ) ) {
 			wp_die( esc_html__( 'You do not have permission to delete logs.', 'wp-simple-logger' ) );
 		}
 
@@ -357,7 +366,7 @@ final class Log_Viewer {
 	 * @param bool   $remove_channel_key Whether to remove the 'channel' query arg from the URL.
 	 */
 	private function set_admin_notice_and_redirect( string $message, bool $remove_channel_key = false ): void {
-		$transient_key = 'wpsl_admin_notice_' . get_current_user_id();
+		$transient_key = self::ADMIN_NOTICE_TRANSIENT_PREFIX . get_current_user_id();
 		set_transient( $transient_key, $message, 60 );
 
 		$removed_keys = [ 'action', 'action2', '_wpnonce', 'log_ids', 's' ];

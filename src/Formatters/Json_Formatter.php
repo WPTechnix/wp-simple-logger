@@ -1,16 +1,17 @@
 <?php
 /**
  * Formats a log record into a JSON string.
- *
- * @package WPTechnix\WP_Simple_Logger\Formatters
  */
 
 declare(strict_types=1);
 
 namespace WPTechnix\WP_Simple_Logger\Formatters;
 
+use WPTechnix\WP_Simple_Logger\Contracts\Formatter_Interface;
 use WPTechnix\WP_Simple_Logger\Log_Entry;
+use WPTechnix\WP_Simple_Logger\Utils\Json_Encoder;
 use stdClass;
+use Override;
 
 /**
  * Class Json_Formatter.
@@ -18,7 +19,7 @@ use stdClass;
  * Serializes a Log_Entry object into a JSON string.
  * This is useful for sending logs to services that ingest structured JSON.
  */
-final class Json_Formatter extends Abstract_Formatter {
+final class Json_Formatter implements Formatter_Interface {
 
 	/**
 	 * The default set of keys to include in the JSON output.
@@ -28,14 +29,14 @@ final class Json_Formatter extends Abstract_Formatter {
 	/**
 	 * A whitelist of keys to include in the final JSON record.
 	 *
-	 * @var array<string>
+	 * @var list<string>
 	 */
 	private array $keys_to_include;
 
 	/**
 	 * Json_Formatter constructor.
 	 *
-	 * @param array<string>|null $keys_to_include An array of keys to include in the output.
+	 * @param list<string>|null $keys_to_include An array of keys to include in the output.
 	 *                                       Available keys: id, datetime, timestamp, channel, level, levelName, message, context.
 	 *                                       If null, a default set will be used.
 	 */
@@ -50,6 +51,7 @@ final class Json_Formatter extends Abstract_Formatter {
 	 *
 	 * @return string The JSON formatted log string.
 	 */
+	#[Override]
 	public function format( Log_Entry $entry ): string {
 		$datetime_string = $entry->get_date_time();
 
@@ -74,8 +76,8 @@ final class Json_Formatter extends Abstract_Formatter {
 			}
 		}
 
-		$json = wp_json_encode( $record, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
+		$json = Json_Encoder::encode( $record );
 
-		return is_string( $json ) ? $json . PHP_EOL : '';
+		return null !== $json ? $json . PHP_EOL : '';
 	}
 }

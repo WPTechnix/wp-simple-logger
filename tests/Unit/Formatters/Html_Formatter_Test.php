@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace WPTechnix\WP_Simple_Logger\Tests\Unit;
+namespace WPTechnix\WP_Simple_Logger\Tests\Unit\Formatters;
 
 use WPTechnix\WP_Simple_Logger\Formatters\Html_Formatter;
 use WPTechnix\WP_Simple_Logger\Log_Entry;

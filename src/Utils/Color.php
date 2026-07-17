@@ -1,8 +1,6 @@
 <?php
 /**
  * Color Util Class
- *
- * @package WPTechnix\WP_Simple_Logger\Utils
  */
 
 declare(strict_types=1);
@@ -30,6 +28,6 @@ final class Color {
 		$b = (float) hexdec( substr( $hex_color, 4, 2 ) );
 		// W3C algorithm for luminance.
 		$luminance = ( 0.2126 * $r + 0.7152 * $g + 0.0722 * $b ) / 255.0;
-		return $luminance < 0.715; // was 0.5.
+		return $luminance < 0.715;
 	}
 }

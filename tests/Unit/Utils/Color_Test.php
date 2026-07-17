@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace WPTechnix\WP_Simple_Logger\Tests\Unit;
+namespace WPTechnix\WP_Simple_Logger\Tests\Unit\Utils;
 
 use WPTechnix\WP_Simple_Logger\Utils\Color;
 use WPTechnix\WP_Simple_Logger\Tests\TestCase;

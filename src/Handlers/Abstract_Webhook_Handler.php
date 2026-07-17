@@ -1,8 +1,6 @@
 <?php
 /**
  * Abstract base class for handlers that dispatch logs to an HTTP endpoint.
- *
- * @package WPTechnix\WP_Simple_Logger\Handlers
  */
 
 declare(strict_types=1);
@@ -12,14 +10,38 @@ namespace WPTechnix\WP_Simple_Logger\Handlers;
 use Psr\Log\LogLevel;
 use WP_Error;
 use WPTechnix\WP_Simple_Logger\Log_Entry;
+use WPTechnix\WP_Simple_Logger\Utils\Debug_Logger;
+use WPTechnix\WP_Simple_Logger\Utils\Json_Encoder;
+use Override;
 
 /**
  * Class Abstract_Webhook_Handler.
  *
  * Buffers log records and dispatches them to an HTTP endpoint as a single JSON
  * request using the WordPress HTTP API. The HTTP method, headers, timeout, and
- * blocking behavior are all configurable. Concrete handlers only have to build the
- * payload; buffering, level/channel filtering, and transport are handled here.
+ * blocking behavior are configurable. Concrete handlers only need to build the
+ * payload. Buffering, level/channel filtering, and transport are handled by this
+ * class.
+ *
+ * @phpstan-type Request_Args array{
+ *   method?: string,
+ *   timeout?: float,
+ *   redirection?: int,
+ *   httpversion?: string,
+ *   user-agent?: string,
+ *   reject_unsafe_urls?: bool,
+ *   blocking?: bool,
+ *   headers?: string|array<string, string>,
+ *   cookies?: array<array-key, mixed>,
+ *   body?: string|array<array-key, mixed>,
+ *   compress?: bool,
+ *   decompress?: bool,
+ *   sslverify?: bool,
+ *   sslcertificates?: string,
+ *   stream?: bool,
+ *   filename?: string,
+ *   limit_response_size?: int,
+ * }
  */
 abstract class Abstract_Webhook_Handler extends Abstract_Handler {
 
@@ -30,15 +52,11 @@ abstract class Abstract_Webhook_Handler extends Abstract_Handler {
 
 	/**
 	 * The endpoint URL that log payloads are sent to.
-	 *
-	 * @var string
 	 */
 	protected string $webhook_url;
 
 	/**
 	 * The HTTP method used for the request.
-	 *
-	 * @var string
 	 */
 	protected string $method = 'POST';
 
@@ -51,15 +69,11 @@ abstract class Abstract_Webhook_Handler extends Abstract_Handler {
 
 	/**
 	 * The request timeout, in seconds.
-	 *
-	 * @var float
 	 */
 	protected float $timeout = self::DEFAULT_TIMEOUT;
 
 	/**
 	 * Whether the HTTP request should block until a response is received.
-	 *
-	 * @var bool
 	 */
 	protected bool $blocking = false;
 
@@ -67,7 +81,7 @@ abstract class Abstract_Webhook_Handler extends Abstract_Handler {
 	 * Additional arguments merged into the `wp_remote_request()` request.
 	 * Managed arguments (method, headers, body, timeout, blocking) take precedence.
 	 *
-	 * @var array<string, mixed>
+	 * @phpstan-var Request_Args
 	 */
 	protected array $request_args = [];
 
@@ -142,7 +156,9 @@ abstract class Abstract_Webhook_Handler extends Abstract_Handler {
 	 * Sets additional arguments to merge into the `wp_remote_request()` call, for
 	 * settings not covered by the dedicated setters (e.g. `sslverify`, `cookies`).
 	 *
-	 * @param array<string, mixed> $args Additional request arguments.
+	 * @param array $args Additional request arguments.
+	 *
+	 * @phpstan-param Request_Args $args
 	 */
 	public function set_request_args( array $args ): self {
 		$this->request_args = $args;
@@ -154,14 +170,15 @@ abstract class Abstract_Webhook_Handler extends Abstract_Handler {
 	 *
 	 * @param array<int, Log_Entry> $entries The buffered log entries to write.
 	 */
+	#[Override]
 	protected function write( array $entries ): void {
 		$payload = $this->build_payload( $entries );
 		if ( 0 === count( $payload ) ) {
 			return;
 		}
 
-		$body = wp_json_encode( $payload );
-		if ( ! is_string( $body ) ) {
+		$body = Json_Encoder::encode( $payload );
+		if ( null === $body ) {
 			return;
 		}
 
@@ -189,11 +206,7 @@ abstract class Abstract_Webhook_Handler extends Abstract_Handler {
 			return;
 		}
 
-		if ( ! defined( 'WP_DEBUG' ) || ! WP_DEBUG ) {
-			return;
-		}
-
-		error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+		Debug_Logger::log(
 			sprintf( 'WP Simple Logger: webhook request to %s failed: %s', $this->webhook_url, $response->get_error_message() )
 		);
 	}

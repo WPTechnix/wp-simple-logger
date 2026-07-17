@@ -2,7 +2,7 @@ parameters:
     phpVersion:
         min: 80000
         max: 80500
-    level: 8
+    level: 10
     tmpDir: .phpstan.cache
     paths:
         - src/

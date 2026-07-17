@@ -1,13 +1,13 @@
 <?php
 /**
  * Handles database table creation and updates for a specific log table.
- *
- * @package WPTechnix\WP_Simple_Logger\Handlers\Database
  */
 
 declare(strict_types=1);
 
-namespace WPTechnix\WP_Simple_Logger\Handlers\Database;
+namespace WPTechnix\WP_Simple_Logger\Database;
+
+use wpdb;
 
 /**
  * Class Database_Installer.
@@ -24,15 +24,11 @@ final class Database_Installer {
 
 	/**
 	 * The full name of the custom log table.
-	 *
-	 * @var string
 	 */
 	private string $table_name;
 
 	/**
 	 * The unique option key for storing this table's db version.
-	 *
-	 * @var string
 	 */
 	private string $option_key;
 
@@ -42,13 +38,7 @@ final class Database_Installer {
 	 * @param string $table_name The full, unique name of the database table.
 	 */
 	public function __construct( string $table_name ) {
-		if ( 1 !== preg_match( '/^[A-Za-z0-9_]+$/', $table_name ) ) {
-			throw new \InvalidArgumentException(
-				sprintf( 'Invalid log table name: %s. Only letters, numbers, and underscores are allowed.', $table_name )
-			);
-		}
-
-		$this->table_name = $table_name;
+		$this->table_name = Table_Name_Validator::validate( $table_name );
 		// Create a unique option key based on the table name to prevent conflicts.
 		$this->option_key = 'wpsl_db_version_' . md5( $this->table_name );
 	}
@@ -70,8 +60,6 @@ final class Database_Installer {
 
 	/**
 	 * Gets the full name of the custom logs table.
-	 *
-	 * @return string The logs table name.
 	 */
 	public function get_table_name(): string {
 		return $this->table_name;
@@ -79,9 +67,14 @@ final class Database_Installer {
 
 	/**
 	 * Executes the database schema creation/update using dbDelta.
+	 *
+	 * @throws \RuntimeException If the WordPress database object is unavailable.
 	 */
 	private function run_schema_update(): void {
 		global $wpdb;
+		if ( ! $wpdb instanceof wpdb ) {
+			throw new \RuntimeException( 'The global $wpdb database object is not available.' );
+		}
 
 		$charset_collate = $wpdb->get_charset_collate();
 		$sql             = "CREATE TABLE {$this->table_name} (

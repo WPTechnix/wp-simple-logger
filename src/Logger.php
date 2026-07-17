@@ -1,8 +1,6 @@
 <?php
 /**
  * PSR-3 Compliant Logger implementation.
- *
- * @package WPTechnix\WP_Simple_Logger
  */
 
 declare(strict_types=1);

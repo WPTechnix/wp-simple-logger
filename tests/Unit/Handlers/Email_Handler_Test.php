@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace WPTechnix\WP_Simple_Logger\Tests\Unit;
+namespace WPTechnix\WP_Simple_Logger\Tests\Unit\Handlers;
 
 use Brain\Monkey\Functions;
 use Psr\Log\LogLevel;

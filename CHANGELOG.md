@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-07-17
+
+### Added
+
+- `Contracts\Normalizer_Interface` — injectable contract for context normalization, implemented by `Normalizers\Data_Normalizer`
+- `Utils\Json_Encoder` — centralized JSON encoding with Monolog-compatible default flags (`JSON_UNESCAPED_SLASHES`, `JSON_UNESCAPED_UNICODE`, `JSON_PRESERVE_ZERO_FRACTION`, `JSON_INVALID_UTF8_SUBSTITUTE`, `JSON_PARTIAL_OUTPUT_ON_ERROR`)
+- `Utils\Debug_Logger` — internal error reporting helper, guarded by `WP_DEBUG`, replacing inline `error_log()` calls across handlers
+- `Database\Table_Name_Validator` — shared validation for log table names, used by both `Log_Repository` and `Database_Installer`
+- `Database_Handler` constructor now accepts optional `Log_Repository` and `Database_Installer` instances for dependency injection in tests
+- `Log_Manager` constructor now accepts an optional `Normalizer_Interface` for custom normalization strategies
+- `#[Override]` attribute on all handler and formatter methods for PHP 8.3+ compatibility
+
+### Changed
+
+- **Breaking:** Context normalization rewritten to match Monolog's `NormalizerFormatter` exactly:
+  - Objects (including `stdClass`, `JsonSerializable`, and `__toString`-able instances) now normalize to a class-keyed array, e.g. `{"App\Foo": {"bar": 1}}`, instead of opaque `"[object(App\Foo)]"` strings
+  - Exception traces now record `file:line` per stack frame instead of the full `getTraceAsString()` text, reducing payload size and avoiding leaked function arguments
+  - `DateTime` (mutable) values are now normalized alongside `DateTimeImmutable` via the broader `DateTimeInterface`
+  - Default date format changed to `Y-m-d\TH:i:sP` (Monolog's `SIMPLE_DATE`), omitting microsecond precision
+  - `Closure` values now normalize as objects (`{"Closure": {}}`) instead of a bespoke `"[Closure]"` string
+  - Depth-limit and array-truncation messages reworded to Monolog's exact phrasing (e.g. `"Over 9 levels deep, aborting normalization"`)
+- **Breaking:** JSON encoding across all formatters and handlers now uses `Utils\Json_Encoder`, applying Monolog's default flag set consistently
+- `Database\Log_Repository` and `Database\Database_Installer` relocated from `src/Handlers/Database/` to `src/Database/`
+- `Data_Normalizer` relocated from `src/Utils/` to `src/Normalizers/` and now implements `Normalizer_Interface`
+- `Log_List_Table` and `Log_Viewer` use `Json_Encoder` for consistent JSON output in the admin context viewer
+- PHPStan analysis level increased from **8 to 10** for stricter static analysis
+- Test suite restructured into organized subdirectories: `Handlers/`, `Formatters/`, `Database/`, `Utils/`, `Normalizers/`
+
+### Removed
+
+- `Abstract_Formatter` — formatters now implement `Formatter_Interface` directly
+- `Utils\Data_Normalizer` — replaced by `Normalizers\Data_Normalizer`
+- `@package` PHPDoc tags throughout the codebase
+
+### Dev
+
+- Updated `wptechnix/wp-coding-standards` dev dependency from `^1.0` to `^1.1.0`
+- CI matrix now includes PHP 8.5
+- Migrated dependency updates from Dependabot to Renovate with grouped automerge rules
+
 ## [1.0.0] - 2025-07-12
 
 ### Added

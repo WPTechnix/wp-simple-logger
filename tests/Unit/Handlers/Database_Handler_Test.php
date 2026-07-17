@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace WPTechnix\WP_Simple_Logger\Tests\Unit;
+namespace WPTechnix\WP_Simple_Logger\Tests\Unit\Handlers;
 
 use Mockery;
 use Psr\Log\LogLevel;

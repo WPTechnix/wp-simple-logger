@@ -1,17 +1,16 @@
 <?php
 /**
  * Handles all database interactions for a specific log table.
- *
- * @package WPTechnix\WP_Simple_Logger\Handlers\Database
  */
 
 declare(strict_types=1);
 
-namespace WPTechnix\WP_Simple_Logger\Handlers\Database;
+namespace WPTechnix\WP_Simple_Logger\Database;
 
 use wpdb;
 use WPTechnix\WP_Simple_Logger\Log_Entry;
 use WPTechnix\WP_Simple_Logger\Log_Level;
+use WPTechnix\WP_Simple_Logger\Utils\Json_Encoder;
 
 /**
  * Class Log_Repository.
@@ -41,15 +40,11 @@ final class Log_Repository {
 
 	/**
 	 * WordPress database object.
-	 *
-	 * @var wpdb
 	 */
 	private wpdb $wpdb;
 
 	/**
 	 * The name of the log table this repository manages.
-	 *
-	 * @var string
 	 */
 	private string $table_name;
 
@@ -57,17 +52,17 @@ final class Log_Repository {
 	 * Database_Repository constructor.
 	 *
 	 * @param string $table_name The full name of the log table.
+	 *
+	 * @throws \RuntimeException If the WordPress database object is unavailable.
 	 */
 	public function __construct( string $table_name ) {
-		if ( 1 !== preg_match( '/^[A-Za-z0-9_]+$/', $table_name ) ) {
-			throw new \InvalidArgumentException(
-				sprintf( 'Invalid log table name: %s. Only letters, numbers, and underscores are allowed.', $table_name )
-			);
-		}
+		$this->table_name = Table_Name_Validator::validate( $table_name );
 
 		global $wpdb;
-		$this->wpdb       = $wpdb;
-		$this->table_name = $table_name;
+		if ( ! $wpdb instanceof wpdb ) {
+			throw new \RuntimeException( 'The global $wpdb database object is not available.' );
+		}
+		$this->wpdb = $wpdb;
 	}
 
 	/**
@@ -92,7 +87,7 @@ final class Log_Repository {
 			foreach ( $query_columns as $column ) {
 				$value = $log[ $column ] ?? null;
 				if ( 'context' === $column && is_array( $value ) ) {
-					$value = wp_json_encode( $value );
+					$value = Json_Encoder::encode( $value );
 				}
 				$row_values[] = $value;
 			}
@@ -134,7 +129,7 @@ final class Log_Repository {
 		// Whitelist of sortable columns to prevent SQL injection.
 		$sortable_columns = [ 'id', 'channel', 'level', 'timestamp' ];
 		$orderby          = in_array( $sort_args['orderby'], $sortable_columns, true ) ? $sort_args['orderby'] : 'id';
-		$order            = 'ASC' === strtoupper( $sort_args['order'] ) ? 'ASC' : 'DESC';
+		$order            = is_string( $sort_args['order'] ) && 'ASC' === strtoupper( $sort_args['order'] ) ? 'ASC' : 'DESC';
 		$order_by_sql     = "ORDER BY {$orderby} {$order}";
 
 		$query = "SELECT * FROM {$this->table_name} WHERE {$where_sql} {$order_by_sql} LIMIT %d, %d";

@@ -1,8 +1,6 @@
 <?php
 /**
  * Utility for handling PSR-3 log levels and their priorities.
- *
- * @package WPTechnix\WP_Simple_Logger
  */
 
 declare(strict_types=1);

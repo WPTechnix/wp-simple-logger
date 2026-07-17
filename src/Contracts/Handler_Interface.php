@@ -1,8 +1,6 @@
 <?php
 /**
  * Interface for all log handlers.
- *
- * @package WPTechnix\WP_Simple_Logger\Contracts
  */
 
 declare(strict_types=1);

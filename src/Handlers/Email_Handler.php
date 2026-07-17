@@ -1,8 +1,6 @@
 <?php
 /**
  * Log handler for sending emails.
- *
- * @package WPTechnix\WP_Simple_Logger\Handlers
  */
 
 declare(strict_types=1);
@@ -13,6 +11,8 @@ use Psr\Log\LogLevel;
 use WPTechnix\WP_Simple_Logger\Contracts\Formatter_Interface;
 use WPTechnix\WP_Simple_Logger\Formatters\Html_Formatter;
 use WPTechnix\WP_Simple_Logger\Log_Entry;
+use WPTechnix\WP_Simple_Logger\Utils\Debug_Logger;
+use Override;
 
 /**
  * Class Email_Handler.
@@ -30,8 +30,6 @@ final class Email_Handler extends Abstract_Handler {
 
 	/**
 	 * The email subject line.
-	 *
-	 * @var string
 	 */
 	private string $subject;
 
@@ -44,22 +42,16 @@ final class Email_Handler extends Abstract_Handler {
 
 	/**
 	 * The main title of the email body.
-	 *
-	 * @var string
 	 */
 	private string $email_title;
 
 	/**
 	 * The introductory paragraph of the email body.
-	 *
-	 * @var string
 	 */
 	private string $email_intro;
 
 	/**
 	 * The footer text of the email body.
-	 *
-	 * @var string
 	 */
 	private string $email_footer;
 
@@ -132,6 +124,7 @@ final class Email_Handler extends Abstract_Handler {
 	 *
 	 * @param array<int, Log_Entry> $entries The buffered log entries to write.
 	 */
+	#[Override]
 	protected function write( array $entries ): void {
 		if ( null === $this->formatter ) {
 			return;
@@ -156,7 +149,13 @@ final class Email_Handler extends Abstract_Handler {
 		}
 		$body .= '</div>';
 
-		wp_mail( $this->to_recipients, $this->subject, $body, $this->headers );
+		$sent = wp_mail( $this->to_recipients, $this->subject, $body, $this->headers );
+
+		if ( false !== $sent ) {
+			return;
+		}
+
+		Debug_Logger::log( sprintf( 'WP Simple Logger: Failed to send log report email to %s.', implode( ', ', $this->to_recipients ) ) );
 	}
 
 	/**

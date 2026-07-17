@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace WPTechnix\WP_Simple_Logger\Tests\Unit;
+namespace WPTechnix\WP_Simple_Logger\Tests\Unit\Database;
 
 use InvalidArgumentException;
 use Mockery;
 use Mockery\MockInterface;
-use WPTechnix\WP_Simple_Logger\Handlers\Database\Log_Repository;
+use WPTechnix\WP_Simple_Logger\Database\Log_Repository;
 use WPTechnix\WP_Simple_Logger\Log_Entry;
 use WPTechnix\WP_Simple_Logger\Tests\TestCase;
 

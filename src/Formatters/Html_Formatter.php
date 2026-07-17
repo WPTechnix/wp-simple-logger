@@ -1,8 +1,6 @@
 <?php
 /**
  * Formats a log record into an HTML table.
- *
- * @package WPTechnix\WP_Simple_Logger\Formatters
  */
 
 declare(strict_types=1);
@@ -12,6 +10,9 @@ namespace WPTechnix\WP_Simple_Logger\Formatters;
 use WPTechnix\WP_Simple_Logger\Log_Entry;
 use WPTechnix\WP_Simple_Logger\Log_Level;
 use WPTechnix\WP_Simple_Logger\Utils\Color;
+use WPTechnix\WP_Simple_Logger\Utils\Json_Encoder;
+use WPTechnix\WP_Simple_Logger\Contracts\Formatter_Interface;
+use Override;
 
 /**
  * Class Html_Formatter.
@@ -19,7 +20,7 @@ use WPTechnix\WP_Simple_Logger\Utils\Color;
  * Formats a Log_Entry object into an HTML table.
  * This is especially useful for handlers like Email_Handler.
  */
-final class Html_Formatter extends Abstract_Formatter {
+final class Html_Formatter implements Formatter_Interface {
 
 	/**
 	 * Formats a log record into an HTML string.
@@ -28,6 +29,7 @@ final class Html_Formatter extends Abstract_Formatter {
 	 *
 	 * @return string The HTML formatted log string.
 	 */
+	#[Override]
 	public function format( Log_Entry $entry ): string {
 		$output  = $this->add_title( $entry );
 		$output .= '<table cellspacing="1" width="100%" style="border-collapse: collapse; width: 100%;">';
@@ -37,8 +39,8 @@ final class Html_Formatter extends Abstract_Formatter {
 
 		$context = $entry->get_context();
 		if ( null !== $context ) {
-			$context_json = wp_json_encode( $context, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
-			$context_html = '<pre style="white-space: pre-wrap; word-break: break-all;">' . esc_html( (string) $context_json ) . '</pre>';
+			$context_json = Json_Encoder::encode( $context, Json_Encoder::DEFAULT_FLAGS | JSON_PRETTY_PRINT );
+			$context_html = '<pre style="white-space: pre-wrap; word-break: break-all;">' . esc_html( $context_json ?? '' ) . '</pre>';
 			$output      .= $this->add_row( 'Context', $context_html, false );
 		}
 

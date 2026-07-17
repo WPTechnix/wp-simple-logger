@@ -1,8 +1,6 @@
 <?php
 /**
  * The central orchestrator for the logging library.
- *
- * @package WPTechnix\WP_Simple_Logger
  */
 
 declare(strict_types=1);
@@ -13,7 +11,13 @@ use Psr\Log\LoggerInterface;
 use Throwable;
 use WP_Error;
 use WPTechnix\WP_Simple_Logger\Contracts\Handler_Interface;
-use WPTechnix\WP_Simple_Logger\Utils\Data_Normalizer;
+use WPTechnix\WP_Simple_Logger\Contracts\Normalizer_Interface;
+use WPTechnix\WP_Simple_Logger\Normalizers\Data_Normalizer;
+use WPTechnix\WP_Simple_Logger\Utils\Debug_Logger;
+use Stringable;
+use __PHP_Incomplete_Class;
+use ArrayObject;
+use stdClass;
 
 /**
  * Class Log_Manager.
@@ -39,30 +43,27 @@ final class Log_Manager {
 
 	/**
 	 * A flag to ensure flushing only happens once per request.
-	 *
-	 * @var bool
 	 */
 	private bool $has_flushed = false;
 
 	/**
 	 * A flag to ensure WordPress hooks are only registered once.
-	 *
-	 * @var bool
 	 */
 	private bool $hooks_registered = false;
 
 	/**
 	 * The data normalizer instance.
-	 *
-	 * @var Data_Normalizer
 	 */
-	private Data_Normalizer $normalizer;
+	private Normalizer_Interface $normalizer;
 
 	/**
 	 * Log_Manager constructor.
+	 *
+	 * @param Normalizer_Interface|null $normalizer The context normalizer to use.
+	 *                                               Defaults to a standard Data_Normalizer instance.
 	 */
-	public function __construct() {
-		$this->normalizer = new Data_Normalizer();
+	public function __construct( ?Normalizer_Interface $normalizer = null ) {
+		$this->normalizer = $normalizer ?? new Data_Normalizer();
 	}
 
 	/**
@@ -222,7 +223,50 @@ final class Log_Manager {
 			return 'null';
 		}
 
-		return (string) $value;
+		if ( is_scalar( $value ) ) {
+			return (string) $value;
+		}
+
+		if ( is_object( $value ) ) {
+			return $this->stringify_object_value( $value );
+		}
+
+		return gettype( $value );
+	}
+
+	/**
+	 * Converts an object context value to its message representation.
+	 *
+	 * @param object $value The object to convert.
+	 *
+	 * @return string The string representation used for interpolation.
+	 */
+	private function stringify_object_value( object $value ): string {
+		if ( $value instanceof Stringable ) {
+			try {
+				return (string) $value;
+			} catch ( Throwable ) {
+				// if __toString fails, fall back to the class name.
+				return sprintf( '[object(%s) - __toString failed]', $value::class );
+			}
+		}
+
+		if ( __PHP_Incomplete_Class::class === $value::class ) {
+			$accessor = new ArrayObject( $value );
+
+			return sprintf(
+				'[Incomplete Class: %s]',
+				isset( $accessor['__PHP_Incomplete_Class_Name'] ) && is_string( $accessor['__PHP_Incomplete_Class_Name'] )
+					? $accessor['__PHP_Incomplete_Class_Name']
+					: 'unknown'
+			);
+		}
+
+		if ( stdClass::class === $value::class ) {
+			return '[object]';
+		}
+
+		return sprintf( '[object(%s)]', $value::class );
 	}
 
 	/**
@@ -233,11 +277,7 @@ final class Log_Manager {
 	 * @param Throwable         $error   The caught error.
 	 */
 	private function log_handler_error( string $context, Handler_Interface $handler, Throwable $error ): void {
-		if ( ! defined( 'WP_DEBUG' ) || ! WP_DEBUG ) {
-			return;
-		}
-
-		error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+		Debug_Logger::log(
 			sprintf( 'WP Simple Logger: %s %s: %s', $context, $handler::class, $error->getMessage() )
 		);
 	}

@@ -1,8 +1,6 @@
 <?php
 /**
  * Log handler that posts records to a Slack Incoming Webhook.
- *
- * @package WPTechnix\WP_Simple_Logger\Handlers
  */
 
 declare(strict_types=1);
@@ -12,6 +10,8 @@ namespace WPTechnix\WP_Simple_Logger\Handlers;
 use Psr\Log\LogLevel;
 use WPTechnix\WP_Simple_Logger\Log_Entry;
 use WPTechnix\WP_Simple_Logger\Log_Level;
+use WPTechnix\WP_Simple_Logger\Utils\Json_Encoder;
+use Override;
 
 /**
  * Class Slack_Handler.
@@ -29,22 +29,16 @@ final class Slack_Handler extends Abstract_Webhook_Handler {
 
 	/**
 	 * Optional bot username to display in Slack.
-	 *
-	 * @var string|null
 	 */
 	private ?string $username = null;
 
 	/**
 	 * Optional emoji icon (e.g. ":warning:") to display next to the message.
-	 *
-	 * @var string|null
 	 */
 	private ?string $icon_emoji = null;
 
 	/**
 	 * Optional channel override (e.g. "#alerts").
-	 *
-	 * @var string|null
 	 */
 	private ?string $channel = null;
 
@@ -103,6 +97,7 @@ final class Slack_Handler extends Abstract_Webhook_Handler {
 	 *
 	 * @return array<string, mixed> The Slack message payload.
 	 */
+	#[Override]
 	protected function build_payload( array $entries ): array {
 		$payload = [
 			'attachments' => array_map(
@@ -170,8 +165,8 @@ final class Slack_Handler extends Abstract_Webhook_Handler {
 			return $text;
 		}
 
-		$json = wp_json_encode( $context, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
-		if ( ! is_string( $json ) ) {
+		$json = Json_Encoder::encode( $context, Json_Encoder::DEFAULT_FLAGS | JSON_PRETTY_PRINT );
+		if ( null === $json ) {
 			return $text;
 		}
 

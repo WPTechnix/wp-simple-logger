@@ -1,8 +1,6 @@
 <?php
 /**
  * Formats a log record into a single line of text.
- *
- * @package WPTechnix\WP_Simple_Logger\Formatters
  */
 
 declare(strict_types=1);
@@ -10,6 +8,9 @@ declare(strict_types=1);
 namespace WPTechnix\WP_Simple_Logger\Formatters;
 
 use WPTechnix\WP_Simple_Logger\Log_Entry;
+use WPTechnix\WP_Simple_Logger\Contracts\Formatter_Interface;
+use WPTechnix\WP_Simple_Logger\Utils\Json_Encoder;
+use Override;
 
 /**
  * Class Line_Formatter.
@@ -17,7 +18,7 @@ use WPTechnix\WP_Simple_Logger\Log_Entry;
  * Formats a Log_Entry object into a customizable single-line string.
  * This is the default formatter for handlers like File_Handler and Email_Handler.
  */
-final class Line_Formatter extends Abstract_Formatter {
+final class Line_Formatter implements Formatter_Interface {
 
 	/**
 	 * Default Line Format.
@@ -26,8 +27,6 @@ final class Line_Formatter extends Abstract_Formatter {
 
 	/**
 	 * Line Format.
-	 *
-	 * @var string
 	 */
 	private string $format;
 
@@ -45,19 +44,20 @@ final class Line_Formatter extends Abstract_Formatter {
 	}
 
 	/**
-	 * Formats a log record into a string.
+	 * Formats a log record into a line string.
 	 *
 	 * @param Log_Entry $entry A structured log record entity.
 	 *
 	 * @return string The formatted log string.
 	 */
+	#[Override]
 	public function format( Log_Entry $entry ): string {
 		$context        = $entry->get_context();
 		$context_string = '';
 
 		if ( null !== $context ) {
-			$json           = wp_json_encode( $context, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
-			$context_string = is_string( $json ) ? $json : '[json_encode failed]';
+			$json           = Json_Encoder::encode( $context );
+			$context_string = $json ?? '[json_encode failed]';
 		} elseif ( true === $this->ignore_empty_context ) {
 			// Remove the %context% placeholder (and a single preceding space) from the
 			// template before substituting the remaining placeholders.

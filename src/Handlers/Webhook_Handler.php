@@ -1,8 +1,6 @@
 <?php
 /**
  * Generic handler that posts logs as structured JSON to any HTTP endpoint.
- *
- * @package WPTechnix\WP_Simple_Logger\Handlers
  */
 
 declare(strict_types=1);
@@ -10,6 +8,7 @@ declare(strict_types=1);
 namespace WPTechnix\WP_Simple_Logger\Handlers;
 
 use WPTechnix\WP_Simple_Logger\Log_Entry;
+use Override;
 
 /**
  * Class Webhook_Handler.
@@ -27,6 +26,7 @@ final class Webhook_Handler extends Abstract_Webhook_Handler {
 	 *
 	 * @return array<array-key, mixed> The payload with a `logs` array of records.
 	 */
+	#[Override]
 	protected function build_payload( array $entries ): array {
 		return [
 			'logs' => array_map( fn ( Log_Entry $entry ): array => $this->map_entry( $entry ), $entries ),
